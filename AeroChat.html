@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Aero Messenger</title>
+    <style>
+        :root {
+            --accent: #3b82f6;
+            --glass-bg: rgba(255, 255, 255, 0.35);
+            --glass-border: rgba(255, 255, 255, 0.6);
+            --glass-blur: 30px;
+            --card-bg: rgba(255, 255, 255, 0.55);
+            --input-bg: rgba(255, 255, 255, 0.7);
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --hover-bg: rgba(255, 255, 255, 0.3);
+            --chat-bg: rgba(255, 255, 255, 0.2);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background: radial-gradient(circle at 20% 30%, #c7e9fb, #a0d2f3, #7bb8e0);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+            position: relative;
+            overflow-x: hidden;
+            transition: background 0.5s ease;
+        }
+
+        body::before, body::after {
+            content: '';
+            position: fixed;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.25);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.5);
+            z-index: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+        body::before { top: -80px; left: -60px; }
+        body::after { bottom: -100px; right: -40px; width: 350px; height: 350px; background: rgba(255,255,255,0.15); }
+
+        body.no-glass {
+            background: #f1f5f9;
+        }
+        body.no-glass::before,
+        body.no-glass::after {
+            opacity: 0;
+        }
+
+        .app-window {
+            width: 100%;
+            max-width: 390px;
+            height: 85vh;
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            border-radius: 28px;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.15), 0 8px 20px rgba(255,255,255,0.4) inset;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            z-index: 1;
+            transition: all 0.3s ease;
+        }
+
+        .app-window.no-glass {
+            background: #ffffff;
+            border: 1px solid #dfe3e7;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            padding: 28px 22px;
+            background: transparent;
+        }
+        .active-screen { display: flex !important; }
+
+        .glass-header {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            border-bottom: 1px solid var(--glass-border);
+            padding: 16px 20px;
+            color: var(--text-primary);
+            font-weight: 650;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            letter-spacing: -0.2px;
+        }
+
+        .app-window.no-glass .glass-header {
+            background: #517da2;
+            color: #ffffff;
+            border-bottom: none;
+        }
+
+        .glass-input {
+            background: var(--input-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1.5px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 13px 16px;
+            font-size: 15px;
+            outline: none;
+            color: var(--text-primary);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+            transition: 0.2s;
+            width: 100%;
+        }
+
+        .app-window.no-glass .glass-input {
+            background: #ffffff;
+            border: 1.5px solid #dfe3e7;
+            box-shadow: none;
+        }
+
+        .glass-input:focus {
+            border-color: var(--accent);
+            background: rgba(255, 255, 255, 0.85);
+            box-shadow: 0 6px 14px rgba(59,130,246,0.1);
+        }
+
+        .app-window.no-glass .glass-input:focus {
+            background: #ffffff;
+            border-color: var(--accent);
+            box-shadow: none;
+        }
+
+        .glass-input::placeholder { color: #64748b; font-weight: 400; }
+
+        .glass-btn {
+            background: var(--accent);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1.5px solid var(--glass-border);
+            border-radius: 18px;
+            padding: 14px 18px;
+            font-weight: 600;
+            font-size: 15px;
+            color: #ffffff;
+            cursor: pointer;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.08), 0 2px 4px rgba(255,255,255,0.6) inset;
+            transition: 0.2s;
+            letter-spacing: 0.3px;
+            width: 100%;
+            border: none;
+        }
+
+        .glass-btn:active {
+            transform: scale(0.98);
+            opacity: 0.9;
+        }
+
+        .glass-link {
+            color: var(--accent);
+            font-weight: 650;
+            cursor: pointer;
+            text-decoration: none;
+            transition: 0.2s;
+        }
+        .glass-link:hover { text-shadow: 0 0 8px rgba(37,99,235,0.3); }
+
+        .avatar-circle {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 17px;
+            margin-right: 12px;
+            flex-shrink: 0;
+            background: var(--accent);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .telegram-header {
+            text-align: center;
+            margin-top: 15px;
+            margin-bottom: 30px;
+        }
+        .telegram-icon {
+            font-size: 52px;
+            margin-bottom: 12px;
+            filter: drop-shadow(0 8px 12px rgba(0,0,0,0.1));
+        }
+        h1 {
+            font-size: 26px;
+            font-weight: 750;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+            letter-spacing: -0.5px;
+        }
+        .telegram-sub {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+            font-weight: 450;
+        }
+
+        .tg-form {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            margin-bottom: 25px;
+        }
+        .tg-input-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .tg-input-wrapper label {
+            font-size: 13px;
+            font-weight: 650;
+            color: var(--accent);
+            padding-left: 6px;
+            letter-spacing: 0.2px;
+        }
+
+        .tg-footer {
+            text-align: center;
+            margin-top: auto;
+            font-size: 14px;
+            color: var(--text-primary);
+            padding-bottom: 5px;
+        }
+
+        .search-container {
+            padding: 12px 16px;
+            background: transparent;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: var(--card-bg);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 8px 16px;
+            gap: 8px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .search-box input {
+            border: none;
+            background: transparent;
+            outline: none;
+            font-size: 15px;
+            width: 100%;
+            color: var(--text-primary);
+        }
+
+        .list-container { 
+            flex: 1; 
+            overflow-y: auto; 
+            background: transparent; 
+            padding: 6px 0;
+        }
+
+        .chat-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--glass-border);
+            cursor: pointer;
+            transition: 0.2s;
+            background: transparent;
+        }
+
+        .chat-item:hover {
+            background: var(--hover-bg);
+        }
+
+        .chat-title { font-weight: 650; font-size: 15px; color: var(--text-primary); }
+        .chat-preview { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+
+        .chat-messages { 
+            flex: 1; 
+            padding: 15px; 
+            overflow-y: auto; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 8px; 
+            background: var(--chat-bg);
+        }
+
+        .msg-bubble { 
+            max-width: 75%; 
+            padding: 8px 12px; 
+            font-size: 15px; 
+            border-radius: 10px; 
+            word-wrap: break-word; 
+        }
+        .msg-bubble.in { 
+            align-self: flex-start; 
+            background: var(--card-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--glass-border);
+        }
+        .msg-bubble.out { 
+            align-self: flex-end; 
+            background: #eeffde; 
+            color: #0f172a; 
+            border: 1px solid #d2f1b0; 
+        }
+
+        .input-bar { 
+            padding: 10px; 
+            display: flex; 
+            gap: 10px; 
+            background: var(--glass-bg);
+            border-top: 1px solid var(--glass-border); 
+        }
+
+        .input-bar input { 
+            flex: 1; 
+            padding: 10px 14px; 
+            border-radius: 18px; 
+            border: 1px solid var(--glass-border); 
+            font-size: 15px; 
+            color: var(--text-primary); 
+            outline: none;
+            background: var(--input-bg);
+        }
+
+        .send-btn { 
+            background: var(--accent); 
+            color: white; 
+            border: none; 
+            border-radius: 50%; 
+            width: 40px; 
+            height: 40px; 
+            font-size: 18px; 
+            cursor: pointer; 
+        }
+
+        .tab-bar {
+            height: 58px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px);
+            border-top: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .tab-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 11px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 6px 18px;
+            border-radius: 16px;
+            transition: 0.2s;
+            font-weight: 500;
+        }
+        .tab-item.active {
+            color: var(--accent);
+            background: var(--hover-bg);
+        }
+
+        .settings-box {
+            flex: 1;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+        }
+
+        .set-card, .set-row {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 18px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 15px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .set-row { justify-content: space-between; }
+
+        .modal {
+            display: none;
+            position: absolute;
+            top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.25);
+            z-index: 999;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-body {
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 20px;
+            text-align: center;
+            width: 280px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 15px 0; }
+        .color-item {
+            width: 60px; height: 60px; border-radius: 50%;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            color: white; font-weight: bold; border: 2px solid var(--glass-border);
+        }
+
+        .back-btn { background: none; border: none; color: var(--text-primary); font-size: 20px; cursor: pointer; }
+
+        .toggle-switch {
+            width: 50px;
+            height: 26px;
+            background: #cbd5e1;
+            border-radius: 13px;
+            position: relative;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .toggle-switch.active {
+            background: var(--accent);
+        }
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: 0.3s;
+        }
+        .toggle-switch.active::after {
+            left: 26px;
+        }
+
+        .language-selector {
+            display: flex;
+            gap: 8px;
+        }
+        .lang-btn {
+            padding: 8px 16px;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            background: transparent;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+        .lang-btn.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+    </style>
+</head>
+<body>
+<div class="app-window" id="appWindow">
+
+    <!-- ЭКРАН ВХОДА -->
+    <div id="loginScreen" class="screen active-screen">
+        <div class="telegram-header">
+            <div class="telegram-icon">💠</div>
+            <h1>Aero Messenger</h1>
+            <div class="telegram-sub">Безопасный мессенджер<br>с эффектом жидкого стекла</div>
+        </div>
+        <div class="tg-form">
+            <div class="tg-input-wrapper">
+                <label>Имя пользователя</label>
+                <input type="text" id="loginUser" class="glass-input" placeholder="Введите никнейм">
+            </div>
+            <div class="tg-input-wrapper">
+                <label>Пароль</label>
+                <input type="password" id="loginPass" class="glass-input" placeholder="Введите пароль">
+            </div>
+        </div>
+        <button class="glass-btn" id="loginBtn">Войти ✨</button>
+        <div class="tg-footer" style="margin-top:20px;">
+            <span>Нет аккаунта?</span>
+            <span class="glass-link" id="goToRegister" style="cursor:pointer; text-decoration:underline;">Создать</span>
+        </div>
+    </div>
+
+    <!-- ЭКРАН РЕГИСТРАЦИИ -->
+    <div id="registerScreen" class="screen">
+        <div class="telegram-header">
+            <div class="telegram-icon">✨</div>
+            <h1>Регистрация</h1>
+            <div class="telegram-sub">Создайте профиль в стиле glassmorphism</div>
+        </div>
+        <div class="tg-form">
+            <div class="tg-input-wrapper">
+                <label>Имя пользователя</label>
+                <input type="text" id="regUser" class="glass-input" placeholder="Например, glass_user">
+            </div>
+            <div class="tg-input-wrapper">
+                <label>Пароль</label>
+                <input type="password" id="regPass" class="glass-input" placeholder="Минимум 4 символа">
+            </div>
+        </div>
+        <button class="glass-btn" id="registerBtn">Зарегистрироваться 🚀</button>
+        <div class="tg-footer" style="margin-top:20px;">
+            <span>Уже есть профиль?</span>
+            <span class="glass-link" id="goToLogin" style="cursor:pointer; text-decoration:underline;">Войти</span>
+        </div>
+    </div>
+
+    <!-- ЭКРАН ЧАТОВ -->
+    <div id="chatsListScreen" class="screen" style="padding:0;">
+        <div class="glass-header">
+            <span>💬 Чаты</span>
+            <button class="header-btn back-btn" id="logoutBtn">←</button>
+        </div>
+        <div class="search-container">
+            <div class="search-box">
+                🔍 <input type="text" id="chatSearch" placeholder="Поиск чатов">
+            </div>
+        </div>
+        <div class="list-container" id="chatsList"></div>
+        <div class="tab-bar">
+            <div class="tab-item active" id="tabChats"><span>💬</span><span>Чаты</span></div>
+            <div class="tab-item" id="tabSettings"><span>⚙️</span><span>Настройки</span></div>
+        </div>
+    </div>
+
+    <!-- ЭКРАН ЧАТА -->
+    <div id="chatScreen" class="screen" style="padding:0;">
+        <div class="glass-header">
+            <button class="header-btn back-btn" id="backToChats">←</button>
+            <span id="chatTitle">Чат</span>
+            <span style="width: 20px;"></span>
+        </div>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="input-bar">
+            <input type="text" id="messageInput" placeholder="Сообщение...">
+            <button class="send-btn" id="sendMessageBtn">➤</button>
+        </div>
+    </div>
+
+    <!-- ЭКРАН НАСТРОЕК -->
+    <div id="settingsScreen" class="screen" style="padding:0;">
+        <div class="glass-header">
+            <span>⚙️ Настройки</span>
+            <button class="header-btn back-btn" id="backToChatsFromSettings">←</button>
+        </div>
+        <div class="settings-box">
+            <div class="set-card">
+                <div class="avatar-circle" id="settingsAvatar">G</div>
+                <div style="flex:1;">
+                    <div id="settingsUsername" style="font-weight:650;">glass_user</div>
+                    <div style="font-size:13px; color:var(--text-secondary);">Aero Messenger</div>
+                </div>
+                <button class="glass-btn" id="editProfileBtn" style="width:auto; padding:8px 12px; font-size:12px;">Изменить</button>
+            </div>
+            
+            <div class="set-row" id="openColorModal">
+                <span>🎨 Цвет темы</span>
+                <span id="currentColorName" style="color:var(--accent); font-weight:600;">Синий</span>
+            </div>
+            
+            <div class="set-row" id="toggleGlassMode">
+                <span>💎 Жидкое стекло</span>
+                <div class="toggle-switch active" id="glassToggle"></div>
+            </div>
+            
+            <div class="set-row">
+                <span>🌐 Язык</span>
+                <div class="language-selector">
+                    <button class="lang-btn active" id="langRu">RU</button>
+                    <button class="lang-btn" id="langEn">EN</button>
+                </div>
+            </div>
+            
+            <div class="set-row" id="logoutFromSettings">
+                <span>🚪 Выйти</span>
+                <span>→</span>
+            </div>
+        </div>
+        <div class="tab-bar">
+            <div class="tab-item" id="tabChats2"><span>💬</span><span>Чаты</span></div>
+            <div class="tab-item active" id="tabSettings2"><span>⚙️</span><span>Настройки</span></div>
+        </div>
+    </div>
+
+    <!-- МОДАЛКА ЦВЕТА -->
+    <div id="colorModal" class="modal">
+        <div class="modal-body">
+            <h3 style="margin-bottom:12px;">Выберите цвет</h3>
+            <div class="grid" id="colorGrid"></div>
+            <button class="glass-btn" id="closeColorModalBtn">Готово</button>
+        </div>
+    </div>
+
+    <!-- МОДАЛКА ИЗМЕНЕНИЯ ПРОФИЛЯ -->
+    <div id="profileModal" class="modal">
+        <div class="modal-body">
+            <h3 style="margin-bottom:12px;">Изменить профиль</h3>
+            <div class="tg-input-wrapper" style="margin-bottom:10px;">
+                <label>Имя пользователя</label>
+                <input type="text" id="editUsername" class="glass-input">
+            </div>
+            <button class="glass-btn" id="saveProfileBtn">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Глобальные переменные
+    let users = JSON.parse(localStorage.getItem('aeroUsers') || '{}');
+    let currentUser = localStorage.getItem('aeroCurrentUser') || null;
+    let themeColor = localStorage.getItem('aeroTheme') || '#3b82f6';
+    let glassMode = localStorage.getItem('aeroGlassMode') !== 'false';
+    let currentLanguage = localStorage.getItem('aeroLanguage') || 'ru';
+    let activeChat = null;
+    let chatMessages = JSON.parse(localStorage.getItem('aeroChatMessages') || '{}');
+
+    const colorNames = {
+        '#3b82f6': 'Синий',
+        '#ef4444': 'Красный',
+        '#10b981': 'Изумруд',
+        '#f59e0b': 'Янтарный',
+        '#8b5cf6': 'Фиолетовый',
+        '#06b6d4': 'Бирюзовый',
+        '#f472b6': 'Розовый',
+        '#64748b': 'Серый',
+        '#f97316': 'Оранжевый'
+    };
+
+    const demoChats = [
+        { id: 'c1', name: 'Алексей Стеклов', color: '#ef4444' },
+        { id: 'c2', name: 'Мария Прозрачная', color: '#8b5cf6' },
+        { id: 'c3', name: 'Дмитрий Кристалл', color: '#10b981' },
+        { id: 'c4', name: 'Елена Айс', color: '#f59e0b' },
+        { id: 'c5', name: 'Aero Поддержка', color: '#06b6d4' }
+    ];
+
+    // Инициализация чатов
+    if (Object.keys(chatMessages).length === 0) {
+        chatMessages = {
+            c1: [{ from: 'in', text: 'Привет! Как дела?' }],
+            c2: [{ from: 'in', text: 'Этот стиль просто топ!' }],
+            c3: [{ from: 'out', text: 'Договорились на завтра' }],
+            c4: [{ from: 'in', text: 'Спасибо за стикеры 💧' }],
+            c5: [{ from: 'in', text: 'Ваш запрос обработан' }]
+        };
+        localStorage.setItem('aeroChatMessages', JSON.stringify(chatMessages));
+    }
+
+    // Функция переключения экранов
+    function switchScreen(screenId) {
+        console.log('Переключение на экран:', screenId);
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
+        const screenEl = document.getElementById(screenId);
+        if (screenEl) {
+            screenEl.classList.add('active-screen');
+        }
+        
+        if (screenId === 'chatsListScreen') {
+            renderChats();
+        } else if (screenId === 'settingsScreen') {
+            updateSettingsUI();
+        }
+    }
+
+    // Функция регистрации
+    function handleRegister() {
+        console.log('Регистрация началась');
+        const username = document.getElementById('regUser').value.trim();
+        const password = document.getElementById('regPass').value.trim();
+        
+        if (!username) {
+            alert('Введите имя пользователя');
+            return;
+        }
+        if (!password) {
+            alert('Введите пароль');
+            return;
+        }
+        if (password.length < 4) {
+            alert('Пароль слишком короткий (минимум 4 символа)');
+            return;
+        }
+        if (users[username]) {
+            alert('Пользователь уже существует');
+            return;
+        }
+        
+        users[username] = { password, color: themeColor };
+        currentUser = username;
+        
+        localStorage.setItem('aeroUsers', JSON.stringify(users));
+        localStorage.setItem('aeroCurrentUser', currentUser);
+        
+        document.getElementById('regUser').value = '';
+        document.getElementById('regPass').value = '';
+        
+        alert('✅ Регистрация успешна!');
+        switchScreen('chatsListScreen');
+        updateSettingsUI();
+    }
+
+    // Функция входа
+    function handleLogin() {
+        const username = document.getElementById('loginUser').value.trim();
+        const password = document.getElementById('loginPass').value.trim();
+        
+        if (!username || !password) {
+            alert('Введите данные');
+            return;
+        }
+        if (!users[username]) {
+            alert('Пользователь не найден');
+            return;
+        }
+        if (users[username].password !== password) {
+            alert('Неверный пароль');
+            return;
+        }
+        
+        currentUser = username;
+        localStorage.setItem('aeroCurrentUser', currentUser);
+        
+        if (users[username].color) {
+            themeColor = users[username].color;
+            localStorage.setItem('aeroTheme', themeColor);
+        }
+        
+        document.getElementById('loginUser').value = '';
+        document.getElementById('loginPass').value = '';
+        
+        alert('✅ Вход выполнен успешно!');
+        switchScreen('chatsListScreen');
+        updateSettingsUI();
+    }
+
+    function logout() {
+        currentUser = null;
+        localStorage.removeItem('aeroCurrentUser');
+        document.getElementById('loginUser').value = '';
+        document.getElementById('loginPass').value = '';
+        switchScreen('loginScreen');
+    }
+
+    function renderChats() {
+        const container = document.getElementById('chatsList');
+        if (!container) return;
+        
+        container.innerHTML = '';
+        const searchInput = document.getElementById('chatSearch');
+        const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+        
+        demoChats.forEach(chat => {
+            if (chat.name.toLowerCase().includes(searchTerm)) {
+                const item = document.createElement('div');
+                item.className = 'chat-item';
+                
+                const messages = chatMessages[chat.id] || [];
+                const lastMessage = messages.length > 0 ? messages[messages.length - 1].text : 'Нет сообщений';
+                
+                item.innerHTML = `
+                    <div class="avatar-circle" style="background:${chat.color};">${chat.name.charAt(0)}</div>
+                    <div style="flex:1;">
+                        <div class="chat-title">${chat.name}</div>
+                        <div class="chat-preview">${lastMessage}</div>
+                    </div>
+                `;
+                item.onclick = () => openChat(chat.id);
+                container.appendChild(item);
+            }
+        });
+    }
+
+    function openChat(chatId) {
+        activeChat = chatId;
+        const chat = demoChats.find(c => c.id === chatId);
+        if (!chat) return;
+        
+        document.getElementById('chatTitle').textContent = chat.name;
+        renderChatMessages();
+        switchScreen('chatScreen');
+    }
+
+    function renderChatMessages() {
+        const container = document.getElementById('chatMessages');
+        if (!container || !activeChat) return;
+        
+        container.innerHTML = '';
+        const messages = chatMessages[activeChat] || [];
+        
+        messages.forEach(msg => {
+            const bubble = document.createElement('div');
+            bubble.className = `msg-bubble ${msg.from}`;
+            bubble.textContent = msg.text;
+            container.appendChild(bubble);
+        });
+        
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function sendMessage() {
+        const input = document.getElementById('messageInput');
+        const text = input.value.trim();
+        
+        if (!text || !activeChat) return;
+        
+        if (!chatMessages[activeChat]) {
+            chatMessages[activeChat] = [];
+        }
+        
+        chatMessages[activeChat].push({ from: 'out', text });
+        input.value = '';
+        
+        localStorage.setItem('aeroChatMessages', JSON.stringify(chatMessages));
+        renderChatMessages();
+        renderChats();
+        
+        setTimeout(() => {
+            const replies = ['Это круто!', 'Согласен с тобой', 'Интересная мысль'];
+            const reply = replies[Math.floor(Math.random() * replies.length)];
+            chatMessages[activeChat].push({ from: 'in', text: reply });
+            localStorage.setItem('aeroChatMessages', JSON.stringify(chatMessages));
+            renderChatMessages();
+            renderChats();
+        }, 1000);
+    }
+
+    function updateSettingsUI() {
+        const usernameEl = document.getElementById('settingsUsername');
+        const avatarEl = document.getElementById('settingsAvatar');
+        const colorNameEl = document.getElementById('currentColorName');
+        
+        if (usernameEl && currentUser) {
+            usernameEl.textContent = currentUser;
+        }
+        if (avatarEl && currentUser) {
+            avatarEl.textContent = currentUser.charAt(0).toUpperCase();
+        }
+        if (colorNameEl) {
+            colorNameEl.textContent = colorNames[themeColor] || themeColor;
+            colorNameEl.style.color = themeColor;
+        }
+        
+        const glassToggle = document.getElementById('glassToggle');
+        if (glassToggle) {
+            glassToggle.classList.toggle('active', glassMode);
+        }
+    }
+
+    function applyTheme(color) {
+        themeColor = color;
+        document.documentElement.style.setProperty('--accent', color);
+        
+        if (currentUser && users[currentUser]) {
+            users[currentUser].color = color;
+            localStorage.setItem('aeroUsers', JSON.stringify(users));
+        }
+        
+        localStorage.setItem('aeroTheme', color);
+        updateSettingsUI();
+    }
+
+    function toggleGlassMode() {
+        glassMode = !glassMode;
+        localStorage.setItem('aeroGlassMode', glassMode);
+        
+        const appWindow = document.getElementById('appWindow');
+        const body = document.body;
+        
+        if (glassMode) {
+            appWindow.classList.remove('no-glass');
+            body.classList.remove('no-glass');
+        } else {
+            appWindow.classList.add('no-glass');
+            body.classList.add('no-glass');
+        }
+        
+        const glassToggle = document.getElementById('glassToggle');
+        if (glassToggle) {
+            glassToggle.classList.toggle('active', glassMode);
+        }
+    }
+
+    function setLanguage(lang) {
+        currentLanguage = lang;
+        localStorage.setItem('aeroLanguage', lang);
+        
+        if (lang === 'ru') {
+            document.getElementById('langRu').classList.add('active');
+            document.getElementById('langEn').classList.remove('active');
+        } else {
+            document.getElementById('langEn').classList.add('active');
+            document.getElementById('langRu').classList.remove('active');
+        }
+    }
+
+    function openColorModal() {
+        const modal = document.getElementById('colorModal');
+        if (!modal) return;
+        
+        modal.style.display = 'flex';
+        
+        const grid = document.getElementById('colorGrid');
+        if (!grid) return;
+        
+        grid.innerHTML = '';
+        Object.keys(colorNames).forEach(c => {
+            const div = document.createElement('div');
+            div.className = 'color-item';
+            div.style.background = c;
+            div.innerText = c === themeColor ? '✓' : '';
+            div.onclick = () => {
+                applyTheme(c);
+                document.querySelectorAll('.color-item').forEach(d => {
+                    d.innerText = d.style.background === c ? '✓' : '';
+                });
+                div.innerText = '✓';
+                updateSettingsUI();
+            };
+            grid.appendChild(div);
+        });
+    }
+
+    function closeColorModal() {
+        const modal = document.getElementById('colorModal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    function openProfileModal() {
+        const modal = document.getElementById('profileModal');
+        if (!modal) return;
+        
+        document.getElementById('editUsername').value = currentUser || '';
+        modal.style.display = 'flex';
+    }
+
+    function closeProfileModal() {
+        const modal = document.getElementById('profileModal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    function saveProfile() {
+        const newUsername = document.getElementById('editUsername').value.trim();
+        
+        if (!newUsername) {
+            alert('Введите имя');
+            return;
+        }
+        
+        if (users[newUsername] && newUsername !== currentUser) {
+            alert('Имя занято');
+            return;
+        }
+        
+        if (newUsername !== currentUser) {
+            users[newUsername] = users[currentUser];
+            delete users[currentUser];
+            currentUser = newUsername;
+            localStorage.setItem('aeroCurrentUser', currentUser);
+        }
+        
+        localStorage.setItem('aeroUsers', JSON.stringify(users));
+        closeProfileModal();
+        updateSettingsUI();
+        renderChats();
+    }
+
+    // Инициализация при загрузке
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM загружен');
+        
+        // Применяем тему
+        applyTheme(themeColor);
+        
+        // Применяем режим стекла
+        if (!glassMode) {
+            document.getElementById('appWindow').classList.add('no-glass');
+            document.body.classList.add('no-glass');
+        }
+        
+        // Применяем язык
+        setLanguage(currentLanguage);
+        
+        // Проверяем пользователя
+        if (currentUser && users[currentUser]) {
+            switchScreen('chatsListScreen');
+            updateSettingsUI();
+        } else {
+            switchScreen('loginScreen');
+        }
+        
+        // Привязка обработчиков
+        document.getElementById('loginBtn').addEventListener('click', handleLogin);
+        document.getElementById('registerBtn').addEventListener('click', handleRegister);
+        
+        // Кнопка "Создать" - переход на экран регистрации
+        document.getElementById('goToRegister').addEventListener('click', function() {
+            console.log('Клик по кнопке Создать');
+            switchScreen('registerScreen');
+        });
+        
+        // Кнопка "Войти" - переход на экран входа
+        document.getElementById('goToLogin').addEventListener('click', function() {
+            console.log('Клик по кнопке Войти');
+            switchScreen('loginScreen');
+        });
+        
+        document.getElementById('logoutBtn').addEventListener('click', logout);
+        document.getElementById('logoutFromSettings').addEventListener('click', logout);
+        
+        document.getElementById('tabChats').addEventListener('click', () => switchScreen('chatsListScreen'));
+        document.getElementById('tabSettings').addEventListener('click', () => switchScreen('settingsScreen'));
+        document.getElementById('tabChats2').addEventListener('click', () => switchScreen('chatsListScreen'));
+        document.getElementById('tabSettings2').addEventListener('click', () => switchScreen('settingsScreen'));
+        
+        document.getElementById('backToChats').addEventListener('click', () => switchScreen('chatsListScreen'));
+        document.getElementById('backToChatsFromSettings').addEventListener('click', () => switchScreen('chatsListScreen'));
+        
+        document.getElementById('openColorModal').addEventListener('click', openColorModal);
+        document.getElementById('closeColorModalBtn').addEventListener('click', closeColorModal);
+        
+        document.getElementById('toggleGlassMode').addEventListener('click', toggleGlassMode);
+        document.getElementById('glassToggle').addEventListener('click', toggleGlassMode);
+        
+        document.getElementById('langRu').addEventListener('click', () => setLanguage('ru'));
+        document.getElementById('langEn').addEventListener('click', () => setLanguage('en'));
+        
+        document.getElementById('editProfileBtn').addEventListener('click', openProfileModal);
+        document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
+        
+        document.getElementById('chatSearch').addEventListener('input', renderChats);
+        document.getElementById('sendMessageBtn').addEventListener('click', sendMessage);
+        document.getElementById('messageInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+        
+        document.getElementById('colorModal').addEventListener('click', function(e) {
+            if (e.target === this) closeColorModal();
+        });
+        document.getElementById('profileModal').addEventListener('click', function(e) {
+            if (e.target === this) closeProfileModal();
+        });
+        
+        console.log('Все обработчики привязаны');
+    });
+</script>
+</body>
+</html>
